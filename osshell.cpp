@@ -6,7 +6,7 @@
 std::vector<std::string> splitString(std::string text, char d);
 std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path_list);
 bool fileExists(std::string full_path, bool *executable);
-
+//branch testing
 int main (int argc, char **argv)
 {
     std::string input;
