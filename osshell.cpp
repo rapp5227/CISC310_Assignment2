@@ -2,6 +2,9 @@
 #include <cstdlib>
 #include <string>
 #include <vector>
+#include <sys/wait.h>
+#include <sys/types.h>
+#include <unistd.h>
  
 std::vector<std::string> splitString(std::string text, char d);
 std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path_list);
@@ -15,10 +18,42 @@ int main (int argc, char **argv)
 
     std::cout << "Welcome to OSShell! Please enter your commands ('exit' to quit)." << std::endl;
 
+    int shell_flag = 1;
+
+    while(1)
+    {
+        printf("osshell> ");
+
+        std::cin >> input;
+
+        if(input.compare("exit") == 0)  //shell will exit on input "exit"
+        {
+            break;
+        }
+        /*
+        pid_t pid = fork();
+
+        if(pid == 0)    //process is child
+        {
+            execv(input.data(),NULL);
+        }
+
+        else if (pid > 0)   //process is parent
+        {
+            int status = 0;
+            waitpid(0,&status,0);   //waits for child to finish
+
+            if(status)
+            {
+                //child process returned non-zero, error
+            }
+        }  
+        */
+    }
     // Repeat:
-    //  Print prompt for user input: "osshell> " (no newline)
-    //  Get user input for next command
-    //  If command is `exit` exit loop / quit program
+    //~  Print prompt for user input: "osshell> " (no newline)
+    //~  Get user input for next command
+    //~  If command is `exit` exit loop / quit program
     //  If command is `history` print previous N commands
     //  For all other commands, check if an executable by that name is in one of the PATH directories
     //   If yes, execute it
