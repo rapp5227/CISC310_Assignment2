@@ -26,29 +26,40 @@ int main (int argc, char **argv)
 
         std::cin >> input;
 
-        if(input.compare("exit") == 0)  //shell will exit on input "exit"
+        if(input.compare("exit") == 0)
         {
-            break;
+            break;  //exits the shell
         }
-        /*
-        pid_t pid = fork();
-
-        if(pid == 0)    //process is child
+        
+        else if(input.compare("history") == 0)
         {
-            execv(input.data(),NULL);
+            //TODO execute history command
         }
 
-        else if (pid > 0)   //process is parent
+        else    //TODO this code was taken from the internet, I need to find the source in my browser history and provide it here
         {
-            int status = 0;
-            waitpid(0,&status,0);   //waits for child to finish
+            pid_t pid = fork(); //forks the process
 
-            if(status)
+            if(pid == 0)    //if process is child
             {
-                //child process returned non-zero, error
+                //TODO implement execv() call here
+                system(input.data());
+                exit(0);
             }
-        }  
-        */
+
+            else if (pid > 0)   //process is parent
+            {
+                int status = 0;
+                waitpid(0,&status,0);   //waits for child to finish
+
+                if(status)
+                {
+                    //child process returned non-zero, some error
+                    //TODO implement error handling?
+                }
+            }  
+        }
+        
     }
     // Repeat:
     //~  Print prompt for user input: "osshell> " (no newline)
