@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <string>
 #include <vector>
+#include <algorithm> // for std::min
  
 std::vector<std::string> splitString(std::string text, char d);
 std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path_list);
@@ -9,20 +10,98 @@ bool fileExists(std::string full_path, bool *executable);
 
 int main (int argc, char **argv)
 {
+	//read history file into hist array.
     std::string input;
+	std::vector<std::string> hist;
+	std::vector<std::string> input_list;
     char* os_path = getenv("PATH");
     std::vector<std::string> os_path_list = splitString(os_path, ':');
 
     std::cout << "Welcome to OSShell! Please enter your commands ('exit' to quit)." << std::endl;
 
-    // Repeat:
-    //  Print prompt for user input: "osshell> " (no newline)
-    //  Get user input for next command
-    //  If command is `exit` exit loop / quit program
-    //  If command is `history` print previous N commands
-    //  For all other commands, check if an executable by that name is in one of the PATH directories
-    //   If yes, execute it
-    //   If no, print error statement: "<command_name>: Error running command" (do include newline)
+    while( 1 ){
+
+		std::cout << "osshell> ";
+		std::getline(std::cin, input);
+		input_list = splitString(input, ' ');
+		
+
+// exit command
+		if( input_list.front().compare("exit") == 0 ){
+			
+			//write back to history file
+			break;
+		}
+// history command
+		else if( input_list.front().compare("history") == 0){
+
+			//std::cout << "HISTORY CALLED!";
+
+			if(input_list.size() == 1){
+				
+				for( int i=0; i < hist.size(); i++){
+
+					std::cout << "  " << i << ": " << hist[i] << "\n";
+				}
+
+			}
+
+			else if( input_list.size() == 2 ){
+
+
+				// clear the history
+				if( input_list[1] == "clear" ){
+
+					//std::cout << "HISTORY CLEAR CALLED!";
+				
+					std::vector<std::string> empty_hist;
+					hist = empty_hist;		
+
+				}
+
+				//specify how much to print
+				else{
+					int length = std::stoi(input_list[1]);
+					length = std::min(length, (int)hist.size());
+		
+					if( length < 1 && (int)hist.size() != 0){
+
+						std::cout << "Error: history expects an integer > 0 (or 'clear')\n";
+
+					}
+
+					else{
+					
+						for( int i=(int)hist.size() - length; i < length; i++){
+
+							std::cout << "  " << i << ": " << hist[i] << "\n";
+						}
+					}
+				}
+			
+			}
+
+		}
+
+		//Check if Real Command input in /bin or /usr/bin etc. 
+		//else if( ){};
+
+		else{
+	
+			std::cout << input << ": Error running command\n";
+
+		}
+
+		hist.push_back( input );
+
+	}
+
+		
+
+		//  If command is `history` print previous N commands
+		//  For all other commands, check if an executable by that name is in one of the PATH directories
+		//   If yes, execute it
+		//   If no, print error statement: "<command_name>: Error running command" (do include newline)
 
     return 0;
 }
@@ -30,10 +109,30 @@ int main (int argc, char **argv)
 // Returns vector of strings created by splitting `text` on every occurance of `d`
 std::vector<std::string> splitString(std::string text, char d)
 {
+	//result vector
     std::vector<std::string> result;
+	// char index for next ' '
+	int space = 0; 
 
+    while(text.length() != 0){
+        space = text.find(' ');
+
+        if(space < 0){
+
+			result.push_back(text);
+            text = "";
+        }
+
+		else{
+
+			result.push_back(text.substr(0,space));
+            text = text.substr(space + 1);   
+        }
+    }
     return result;
 }
+
+
 
 // Returns a string for the full path of a command if it is found in PATH, otherwise simply return ""
 std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path_list)
