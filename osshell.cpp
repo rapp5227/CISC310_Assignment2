@@ -5,7 +5,7 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <unistd.h>
- 
+
 std::vector<std::string> splitString(std::string text, char d);
 std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path_list);
 bool fileExists(std::string full_path, bool *executable);
@@ -36,14 +36,20 @@ int main (int argc, char **argv)
             //TODO execute history command
         }
 
-        else    //TODO this code was taken from the internet, I need to find the source in my browser history and provide it here
+        else    //Structure adapted from https://stackoverflow.com/a/19461845
         {
+            
+
+
+
+            break;
             pid_t pid = fork(); //forks the process
 
             if(pid == 0)    //if process is child
             {
-                //TODO implement execv() call here
-                system(input.data());
+                std::vector<std::string> tokens = splitString(input, ' ');
+
+                system(tokens[0].data());
                 exit(0);
             }
 
@@ -61,6 +67,8 @@ int main (int argc, char **argv)
         }
         
     }
+
+
     // Repeat:
     //~  Print prompt for user input: "osshell> " (no newline)
     //~  Get user input for next command
@@ -74,9 +82,27 @@ int main (int argc, char **argv)
 }
 
 // Returns vector of strings created by splitting `text` on every occurance of `d`
-std::vector<std::string> splitString(std::string text, char d)
+std::vector<std::string> splitString(std::string text, char d)  //TODO not working
 {
     std::vector<std::string> result;
+
+    int start = 0;
+    int size = 0;
+
+    for(int i = 0;i < text.length();i++)
+    {
+        ++size;
+
+        if(text[i] == d)
+        {
+            result.push_back(text.substr(start,size-1));
+
+            start = i + 1;
+            size = 0;
+        }
+    }
+    
+    result.push_back(text.substr(start,size));
 
     return result;
 }
