@@ -1,5 +1,10 @@
-#include <vector>
+#include <iostream>
+#include <cstdlib>
 #include <string>
+#include <vector>
+#include <sys/wait.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 std::vector<std::string> splitString(std::string text, char d)
 {
@@ -29,12 +34,27 @@ std::vector<std::string> splitString(std::string text, char d)
     return result;
 }
 
-int main(int argc, char** argv)
+int main()
 {
-    std::vector<std::string>    v = splitString("",'c');
+    char* path = "/bin/ls";
+    char** argv = (char**) malloc(sizeof(char**));
 
-    for(int i = 0;i < v.size();i++)
+    argv[0] = path;
+
+    pid_t pid = fork();
+
+    if(pid == 0)
     {
-        printf(">%s<\n",v[i].data());
+        execv(path,argv);
     }
+
+    else
+    {
+        int status = 0;
+        waitpid(0,&status,0);
+        sleep(2);
+        printf("child is dead\n");
+    }
+
+    return 0;
 }

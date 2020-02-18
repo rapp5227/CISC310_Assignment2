@@ -18,8 +18,6 @@ int main (int argc, char **argv)
 
     std::cout << "Welcome to OSShell! Please enter your commands ('exit' to quit)." << std::endl;
 
-    int shell_flag = 1;
-
     while(1)
     {
         printf("osshell> ");
@@ -36,14 +34,29 @@ int main (int argc, char **argv)
             //TODO execute history command
         }
 
-        else    //Structure adapted from https://stackoverflow.com/a/19461845
+        else if(input.compare("") != 0)   //Structure adapted from https://stackoverflow.com/a/19461845
         {
             pid_t pid = fork(); //forks the process
 
             if(pid == 0)    //if process is child
             {
+                // printf("child spawn\n");
+
                 std::vector<std::string> tokens = splitString(input, ' ');  //splits input by spaces to approximate argv[]
 
+                char** new_argv = (char**) malloc(tokens.size() * sizeof(char*));
+
+                for(int i = 0;i < tokens.size();i++)
+                {
+                    new_argv[i] = (char*) tokens[i].data();
+                }
+                
+                // for(int i = 0;i < tokens.size();i++)
+                // {
+                //     printf("Element %d: %s\n",i,new_argv[i]);
+                // }
+
+                execv(new_argv[0],new_argv);
                 exit(0);
             }
 
@@ -51,6 +64,8 @@ int main (int argc, char **argv)
             {
                 int status = 0;
                 waitpid(0,&status,0);   //waits for child to finish, places exit code into status
+
+                // printf("parent continues\n");
 
                 if(status != 0)
                 {
@@ -76,7 +91,7 @@ int main (int argc, char **argv)
 }
 
 // Returns vector of strings created by splitting `text` on every occurance of `d`
-std::vector<std::string> splitString(std::string text, char d)  //TODO might not be working
+std::vector<std::string> splitString(std::string text, char d)
 {
     std::vector<std::string> result;
 
