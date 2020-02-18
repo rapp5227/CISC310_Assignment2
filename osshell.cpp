@@ -9,7 +9,7 @@
 std::vector<std::string> splitString(std::string text, char d);
 std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path_list);
 bool fileExists(std::string full_path, bool *executable);
-//branch testing
+
 int main (int argc, char **argv)
 {
     std::string input;
@@ -24,8 +24,8 @@ int main (int argc, char **argv)
     {
         printf("osshell> ");
 
-        std::cin >> input;
-
+        getline(std::cin,input);
+        
         if(input.compare("exit") == 0)
         {
             break;  //exits the shell
@@ -38,30 +38,24 @@ int main (int argc, char **argv)
 
         else    //Structure adapted from https://stackoverflow.com/a/19461845
         {
-            
-
-
-
-            break;
             pid_t pid = fork(); //forks the process
 
             if(pid == 0)    //if process is child
             {
-                std::vector<std::string> tokens = splitString(input, ' ');
+                std::vector<std::string> tokens = splitString(input, ' ');  //splits input by spaces to approximate argv[]
 
-                system(tokens[0].data());
                 exit(0);
             }
 
             else if (pid > 0)   //process is parent
             {
                 int status = 0;
-                waitpid(0,&status,0);   //waits for child to finish
+                waitpid(0,&status,0);   //waits for child to finish, places exit code into status
 
-                if(status)
+                if(status != 0)
                 {
-                    //child process returned non-zero, some error
-                    //TODO implement error handling?
+                    perror("Error occurred during child spawn");    //prints error message and exits
+                    exit(-1);
                 }
             }  
         }
@@ -82,7 +76,7 @@ int main (int argc, char **argv)
 }
 
 // Returns vector of strings created by splitting `text` on every occurance of `d`
-std::vector<std::string> splitString(std::string text, char d)  //TODO not working
+std::vector<std::string> splitString(std::string text, char d)  //TODO might not be working
 {
     std::vector<std::string> result;
 
