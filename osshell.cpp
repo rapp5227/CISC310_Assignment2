@@ -2,7 +2,10 @@
 #include <cstdlib>
 #include <string>
 #include <vector>
- 
+#include <sys/wait.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 std::vector<std::string> splitString(std::string text, char d);
 std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path_list);
 bool fileExists(std::string full_path, bool *executable);
@@ -15,10 +18,70 @@ int main (int argc, char **argv)
 
     std::cout << "Welcome to OSShell! Please enter your commands ('exit' to quit)." << std::endl;
 
+    while(1)
+    {
+        printf("osshell> ");
+
+        getline(std::cin,input);
+        
+        if(input.compare("exit") == 0)
+        {
+            break;  //exits the shell
+        }
+        
+        else if(input.compare("history") == 0)
+        {
+            //TODO execute history command
+        }
+
+        else if(input.compare("") != 0)   //Structure adapted from https://stackoverflow.com/a/19461845
+        {
+            pid_t pid = fork(); //forks the process
+
+            if(pid == 0)    //if process is child
+            {
+                // printf("child spawn\n");
+
+                std::vector<std::string> tokens = splitString(input, ' ');  //splits input by spaces to approximate argv[]
+
+                char** new_argv = (char**) malloc(tokens.size() * sizeof(char*));
+
+                for(int i = 0;i < tokens.size();i++)
+                {
+                    new_argv[i] = (char*) tokens[i].data();
+                }
+                
+                // for(int i = 0;i < tokens.size();i++)
+                // {
+                //     printf("Element %d: %s\n",i,new_argv[i]);
+                // }
+
+                execv(new_argv[0],new_argv);
+                exit(0);
+            }
+
+            else if (pid > 0)   //process is parent
+            {
+                int status = 0;
+                waitpid(0,&status,0);   //waits for child to finish, places exit code into status
+
+                // printf("parent continues\n");
+
+                if(status != 0)
+                {
+                    perror("Error occurred during child spawn");    //prints error message and exits
+                    exit(-1);
+                }
+            }  
+        }
+        
+    }
+
+
     // Repeat:
-    //  Print prompt for user input: "osshell> " (no newline)
-    //  Get user input for next command
-    //  If command is `exit` exit loop / quit program
+    //~  Print prompt for user input: "osshell> " (no newline)
+    //~  Get user input for next command
+    //~  If command is `exit` exit loop / quit program
     //  If command is `history` print previous N commands
     //  For all other commands, check if an executable by that name is in one of the PATH directories
     //   If yes, execute it
@@ -31,6 +94,24 @@ int main (int argc, char **argv)
 std::vector<std::string> splitString(std::string text, char d)
 {
     std::vector<std::string> result;
+
+    int start = 0;
+    int size = 0;
+
+    for(int i = 0;i < text.length();i++)
+    {
+        ++size;
+
+        if(text[i] == d)
+        {
+            result.push_back(text.substr(start,size-1));
+
+            start = i + 1;
+            size = 0;
+        }
+    }
+    
+    result.push_back(text.substr(start,size));
 
     return result;
 }
