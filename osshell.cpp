@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <algorithm> // for std::min
+#include <fstream>	// for file reading
  
 std::vector<std::string> splitString(std::string text, char d);
 std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path_list);
@@ -11,11 +12,35 @@ bool fileExists(std::string full_path, bool *executable);
 int main (int argc, char **argv)
 {
 	//read history file into hist array.
-    std::string input;
+	std::ifstream hist_file("./history.txt");
+	//copy of hist while program is running
 	std::vector<std::string> hist;
+
+    std::string input;
 	std::vector<std::string> input_list;
     char* os_path = getenv("PATH");
     std::vector<std::string> os_path_list = splitString(os_path, ':');
+
+// initialize hist vector
+	if( hist_file.fail() ){
+
+	std::ofstream new_hist("./history.txt");
+
+	//new_hist << "History file Successfully Created";
+
+	}
+
+	hist_file.open("./history.txt");
+	std::string temp;
+	while(std::getline( hist_file, temp)){
+
+		if(temp.size() > 0){
+
+			hist.push_back(temp);
+		}
+	}
+	
+
 
     std::cout << "Welcome to OSShell! Please enter your commands ('exit' to quit)." << std::endl;
 
@@ -30,13 +55,26 @@ int main (int argc, char **argv)
 		if( input_list.front().compare("exit") == 0 ){
 			
 			//write back to history file
+
+			//clear file contents -- https://stackoverflow.com/questions/17032970/clear-data-inside-text-file-in-c
+			std::ofstream out;
+			out.open("./history.txt", std::ofstream::out | std::ofstream::trunc);
+			out.close();
+
+			out.open("./history.txt");
+
+			for(int i=0; i< hist.size(); i++){
+
+				out << hist[i] << "\n";
+				
+			}
+
 			break;
 		}
 // history command
 		else if( input_list.front().compare("history") == 0){
 
-			//std::cout << "HISTORY CALLED!";
-
+			//just called "history"
 			if(input_list.size() == 1){
 				
 				for( int i=0; i < hist.size(); i++){
@@ -45,21 +83,20 @@ int main (int argc, char **argv)
 				}
 
 			}
-
+			
+			//called "history XXXX"
 			else if( input_list.size() == 2 ){
 
 
-				// clear the history
+				// called "history clear"
 				if( input_list[1] == "clear" ){
-
-					//std::cout << "HISTORY CLEAR CALLED!";
 				
 					std::vector<std::string> empty_hist;
 					hist = empty_hist;		
 
 				}
 
-				//specify how much to print
+				// called "history <int>" or "history <garbage>"
 				else{
 					int length = std::stoi(input_list[1]);
 					length = std::min(length, (int)hist.size());
@@ -92,7 +129,12 @@ int main (int argc, char **argv)
 
 		}
 
-		hist.push_back( input );
+		if( input.compare("history clear") != 0) hist.push_back( input );
+
+		if( hist.size() > 128 ){
+
+			hist.erase(hist.begin());
+		}
 
 	}
 
