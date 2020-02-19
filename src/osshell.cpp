@@ -46,25 +46,12 @@ int main (int argc, char **argv)
 
                 char** new_argv = vectorToArray(tokens);    //converts vector to a char**
 
-                std::string command = tokens[0];
+                std::string command = getFullPath(tokens[0],os_path_list);
 
-                if(command[0] == '.')   //relative path
-                {
-                    //relative path handling
-                }
-
-                else if(command[0] == '/')  //full path
-                {
-                    //full path handling
-                }
-
-                else    //expects a file in PATH
-                {
-                    //test if it's found in the PATH
-
-                    // if(fileNotFound)
-                    //     printf("<%s>: Error running command\n",input.substr(0,input.find(' ')).data());
-                }
+                // if(command.compare("") == 0)
+                // {
+                //     command = tokens[0].data();
+                // }
 
                 execv(command.data(),new_argv);
                 exit(0);
@@ -126,7 +113,28 @@ std::vector<std::string> splitString(std::string text, char d)
 // Returns a string for the full path of a command if it is found in PATH, otherwise simply return ""
 std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path_list)
 {
-    return "";
+    std::string result = "";
+    bool x = false;
+
+    for(int i = 0;i < os_path_list.size();i++)
+    {
+        std::string path = os_path_list[i] + "/" + cmd;
+
+        if(fileExists(path,&x) && x)
+        {
+            result = path;
+            break;
+        }
+    }
+
+    if(result.compare("") == 0)
+    {
+        printf("<%s>: Error running command\n",cmd.data());
+    }
+
+    //TODO relative path checking should probably go here
+
+    return result;
 }
 
 // Returns whether a file exists or not; should also set *executable to true/false 
@@ -137,8 +145,8 @@ bool fileExists(std::string full_path, bool *executable)
 
     bool result = file.good();
 
-    if(result)
-        *executable = ! access(full_path.data(),X_OK);
+    *executable = !access(full_path.data(),X_OK) && result;
+        //if the file doesn't exist, executable is always false
 
     return result;
 }
