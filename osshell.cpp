@@ -5,10 +5,12 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <fstream>
 
 std::vector<std::string> splitString(std::string text, char d);
 std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path_list);
 bool fileExists(std::string full_path, bool *executable);
+char** vectorToArray(std::vector<std::string> input);
 
 int main (int argc, char **argv)
 {
@@ -24,9 +26,9 @@ int main (int argc, char **argv)
 
         getline(std::cin,input);
         
-        if(input.compare("exit") == 0)
+        if(input.compare("exit") == 0)  //exits the shell
         {
-            break;  //exits the shell
+            break;
         }
         
         else if(input.compare("history") == 0)
@@ -38,25 +40,33 @@ int main (int argc, char **argv)
         {
             pid_t pid = fork(); //forks the process
 
-            if(pid == 0)    //if process is child
+            if(pid == 0)    //if current process is child
             {
-                // printf("child spawn\n");
-
                 std::vector<std::string> tokens = splitString(input, ' ');  //splits input by spaces to approximate argv[]
 
-                char** new_argv = (char**) malloc(tokens.size() * sizeof(char*));
+                char** new_argv = vectorToArray(tokens);    //converts vector to a char**
 
-                for(int i = 0;i < tokens.size();i++)
+                std::string command = tokens[0];
+
+                if(command[0] == '.')   //relative path
                 {
-                    new_argv[i] = (char*) tokens[i].data();
+                    //relative path handling
                 }
-                
-                // for(int i = 0;i < tokens.size();i++)
-                // {
-                //     printf("Element %d: %s\n",i,new_argv[i]);
-                // }
 
-                execv(new_argv[0],new_argv);
+                else if(command[0] == '/')  //full path
+                {
+                    //full path handling
+                }
+
+                else    //expects a file in PATH
+                {
+                    //test if it's found in the PATH
+
+                    // if(fileNotFound)
+                    //     printf("<%s>: Error running command\n",input.substr(0,input.find(' ')).data());
+                }
+
+                execv(command.data(),new_argv);
                 exit(0);
             }
 
@@ -65,17 +75,14 @@ int main (int argc, char **argv)
                 int status = 0;
                 waitpid(0,&status,0);   //waits for child to finish, places exit code into status
 
-                // printf("parent continues\n");
-
-                if(status != 0)
-                {
-                    perror("Error occurred during child spawn");    //prints error message and exits
-                    exit(-1);
-                }
+                // if(status != 0)
+                // {
+                //     printf("<%s>: Error running command\n",input.substr(0,input.find(' ')).data());    //prints error message and exits
+                //     exit(-1);   //TODO do we want to exit here
+                // }
             }  
-        }
-        
-    }
+        }//else if(input.compare("") != 0)
+    }//while(1)
 
 
     // Repeat:
@@ -126,6 +133,25 @@ std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path
 // depending on if the user has permission to execute the file
 bool fileExists(std::string full_path, bool *executable)
 {
-    *executable = false;
-    return false;
+    std::ifstream file(full_path.data());
+
+    bool result = file.good();
+
+    if(result)
+        *executable = ! access(full_path.data(),X_OK);
+
+    return result;
+}
+
+// converts std::string vector to a char**
+char** vectorToArray(std::vector<std::string> input)
+{
+    char** result = (char**) malloc(input.size() * sizeof(char*));
+
+    for(int i = 0;i < input.size();i++)
+    {
+        result[i] = (char*) input[i].data();
+    }
+
+    return result;
 }
