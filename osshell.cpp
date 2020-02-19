@@ -8,6 +8,7 @@
 std::vector<std::string> splitString(std::string text, char d);
 std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path_list);
 bool fileExists(std::string full_path, bool *executable);
+std::string nums = "0123456789";
 
 int main (int argc, char **argv)
 {
@@ -24,22 +25,19 @@ int main (int argc, char **argv)
 // initialize hist vector
 	if( hist_file.fail() ){
 
-	std::ofstream new_hist("./history.txt");
-
-	//new_hist << "History file Successfully Created";
-
+		hist_file.close();
+		std::ofstream new_hist("./history.txt");
+		new_hist.close();
 	}
 
-	hist_file.open("./history.txt");
+	if( !hist_file.is_open() ) hist_file.open("./history.txt");
 	std::string temp;
+
 	while(std::getline( hist_file, temp)){
-
-		if(temp.size() > 0){
-
-			hist.push_back(temp);
-		}
+		
+		hist.push_back(temp);
 	}
-	
+	hist_file.close();
 
 
     std::cout << "Welcome to OSShell! Please enter your commands ('exit' to quit)." << std::endl;
@@ -98,6 +96,15 @@ int main (int argc, char **argv)
 
 				// called "history <int>" or "history <garbage>"
 				else{
+
+					for(int i=0; i< input_list[i].length(); i++){
+						if( nums.find(input_list[1][i]) < 0){
+
+							std::cout << "Error: history expects an integer > 0 (or 'clear')\n";
+							continue;
+						}
+					}
+
 					int length = std::stoi(input_list[1]);
 					length = std::min(length, (int)hist.size());
 		
@@ -109,7 +116,7 @@ int main (int argc, char **argv)
 
 					else{
 					
-						for( int i=(int)hist.size() - length; i < length; i++){
+						for( int i=(int)hist.size() - length; i < hist.size(); i++){
 
 							std::cout << "  " << i << ": " << hist[i] << "\n";
 						}
@@ -124,15 +131,16 @@ int main (int argc, char **argv)
 		//else if( ){};
 
 		else{
-	
 			std::cout << input << ": Error running command\n";
-
 		}
 
-		if( input.compare("history clear") != 0) hist.push_back( input );
+		hist.push_back( input );
+
+		if(hist.back().compare("history clear") == 0){
+			hist.erase(hist.end());
+		}
 
 		if( hist.size() > 128 ){
-
 			hist.erase(hist.begin());
 		}
 
