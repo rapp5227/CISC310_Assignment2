@@ -113,6 +113,10 @@ std::vector<std::string> splitString(std::string text, char d)
 // Returns a string for the full path of a command if it is found in PATH, otherwise simply return ""
 std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path_list)
 {
+
+    /*
+        TODO this will allow folders through with the executable flag set to true. Need to rework to use stat() for a fix, but doing this the first time completely broke the program
+    */
     std::string result = "";
     bool x = false;
 
