@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <fstream>
+#include <sys/stat.h>
 
 std::vector<std::string> splitString(std::string text, char d);
 std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path_list);
@@ -16,6 +17,9 @@ int main (int argc, char **argv)
 {
     std::string input;
     char* os_path = getenv("PATH");
+
+    std::cout << os_path << std::endl;
+
     std::vector<std::string> os_path_list = splitString(os_path, ':');
 
     std::cout << "Welcome to OSShell! Please enter your commands ('exit' to quit)." << std::endl;
@@ -48,10 +52,10 @@ int main (int argc, char **argv)
 
                 std::string command = getFullPath(tokens[0],os_path_list);
 
-                // if(command.compare("") == 0)
-                // {
-                //     command = tokens[0].data();
-                // }
+                if(command.compare("") == 0)
+                {
+                    printf("command not found\n");
+                }
 
                 execv(command.data(),new_argv);
                 exit(0);
@@ -62,11 +66,11 @@ int main (int argc, char **argv)
                 int status = 0;
                 waitpid(0,&status,0);   //waits for child to finish, places exit code into status
 
-                // if(status != 0)
-                // {
-                //     printf("<%s>: Error running command\n",input.substr(0,input.find(' ')).data());    //prints error message and exits
-                //     exit(-1);   //TODO do we want to exit here
-                // }
+                if(status != 0)
+                {
+                    printf("child exploded");    //prints error message and exits
+                    // exit(-1);   //TODO do we want to exit here
+                }
             }  
         }//else if(input.compare("") != 0)
     }//while(1)
@@ -113,47 +117,67 @@ std::vector<std::string> splitString(std::string text, char d)
 // Returns a string for the full path of a command if it is found in PATH, otherwise simply return ""
 std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path_list)
 {
-
-    /*
-        TODO this will allow folders through with the executable flag set to true. Need to rework to use stat() for a fix, but doing this the first time completely broke the program
-    */
     std::string result = "";
     bool x = false;
+    bool flag = true;
 
-    for(int i = 0;i < os_path_list.size();i++)
+    for(int i = 0;i < os_path_list.size() && flag;i++)
     {
-        std::string path = os_path_list[i] + "/" + cmd;
+        bool exists = fileExists((os_path_list[i] + "/" + cmd),&x);
 
-        if(fileExists(path,&x) && x)
+        if(exists && x)
         {
-            result = path;
+            result = os_path_list[i] + "/" + cmd;
             break;
         }
     }
+
+    //TODO relative path checking should probably go here
 
     if(result.compare("") == 0)
     {
         printf("<%s>: Error running command\n",cmd.data());
     }
 
-    //TODO relative path checking should probably go here
-
     return result;
 }
 
 // Returns whether a file exists or not; should also set *executable to true/false 
 // depending on if the user has permission to execute the file
-bool fileExists(std::string full_path, bool *executable)
+bool fileExists(std::string fpath, bool *executable)
 {
-    std::ifstream file(full_path.data());
+    struct stat st;
 
-    bool result = file.good();
+    if(stat(fpath.data(),&st) != 0)
+    {
+        *executable = false;
+        return false;
+    }
 
-    *executable = !access(full_path.data(),X_OK) && result;
-        //if the file doesn't exist, executable is always false
+    bool isFolder = st.st_mode & S_IFDIR;
+    
+    bool x_a = S_IXOTH;                                 //can anyone execute?
+    bool x_g = S_IXGRP && (geteuid() == st.st_gid);     //is the user in a group that can execute?
+    bool x_o = S_IXUSR && (geteuid() == st.st_uid);     //does the user own this file, and can they execute it?
 
-    return result;
+    bool x = x_a || x_g || x_o;
+
+    *executable = x && !isFolder;
+
+    return true;
 }
+
+// bool fileExists(std::string full_path, bool *executable)
+// {
+//     std::ifstream file(full_path.data());
+
+//     bool result = file.good();
+
+//     *executable = !access(full_path.data(),X_OK) && result;
+//         //if the file doesn't exist, executable is always false
+
+//     return result;
+// }
 
 // converts std::string vector to a char**
 char** vectorToArray(std::vector<std::string> input)
