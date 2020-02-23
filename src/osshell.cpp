@@ -18,8 +18,6 @@ int main (int argc, char **argv)
     std::string input;
     char* os_path = getenv("PATH");
 
-    std::cout << os_path << std::endl;
-
     std::vector<std::string> os_path_list = splitString(os_path, ':');
 
     std::cout << "Welcome to OSShell! Please enter your commands ('exit' to quit)." << std::endl;
@@ -52,11 +50,6 @@ int main (int argc, char **argv)
 
                 std::string command = getFullPath(tokens[0],os_path_list);
 
-                if(command.compare("") == 0)
-                {
-                    printf("command not found\n");
-                }
-
                 execv(command.data(),new_argv);
                 exit(0);
             }
@@ -65,12 +58,6 @@ int main (int argc, char **argv)
             {
                 int status = 0;
                 waitpid(0,&status,0);   //waits for child to finish, places exit code into status
-
-                if(status != 0)
-                {
-                    printf("child exploded");    //prints error message and exits
-                    // exit(-1);   //TODO do we want to exit here
-                }
             }  
         }//else if(input.compare("") != 0)
     }//while(1)
@@ -112,18 +99,18 @@ std::vector<std::string> splitString(std::string text, char d)
     result.push_back(text.substr(start,size));
 
     return result;
-}
+}//splitString
 
 // Returns a string for the full path of a command if it is found in PATH, otherwise simply return ""
 std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path_list)
 {
     std::string result = "";
     bool x = false;
-    bool flag = true;
+    bool exists = false;
 
-    for(int i = 0;i < os_path_list.size() && flag;i++)
+    for(int i = 0;i < os_path_list.size();i++)
     {
-        bool exists = fileExists((os_path_list[i] + "/" + cmd),&x);
+        exists = fileExists((os_path_list[i] + "/" + cmd),&x);
 
         if(exists && x)
         {
@@ -132,15 +119,23 @@ std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path
         }
     }
 
-    //TODO relative path checking should probably go here
-
-    if(result.compare("") == 0)
+    if(result.compare("") == 0) //file not in path
     {
-        printf("<%s>: Error running command\n",cmd.data());
+        exists = fileExists(cmd,&x);    //testing relative/full path
+
+        if(exists && x) //full or relative path hit
+        {
+            std::cout << "command exists on relative or full path: " << cmd << std::endl;
+
+            result = cmd;
+        }
+
+        else    //no file located
+            printf("<%s>: Error running command\n",cmd.data());
     }
 
     return result;
-}
+}//getFullPath
 
 // Returns whether a file exists or not; should also set *executable to true/false 
 // depending on if the user has permission to execute the file
@@ -165,19 +160,7 @@ bool fileExists(std::string fpath, bool *executable)
     *executable = x && !isFolder;
 
     return true;
-}
-
-// bool fileExists(std::string full_path, bool *executable)
-// {
-//     std::ifstream file(full_path.data());
-
-//     bool result = file.good();
-
-//     *executable = !access(full_path.data(),X_OK) && result;
-//         //if the file doesn't exist, executable is always false
-
-//     return result;
-// }
+}//fileExists
 
 // converts std::string vector to a char**
 char** vectorToArray(std::vector<std::string> input)
@@ -190,4 +173,4 @@ char** vectorToArray(std::vector<std::string> input)
     }
 
     return result;
-}
+}//vectorToArray
