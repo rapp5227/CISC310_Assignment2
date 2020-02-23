@@ -18,7 +18,7 @@ int main (int argc, char **argv)
     std::string input;
     char* os_path = getenv("PATH");
 
-    std::cout << os_path << std::endl;
+    // std::cout << os_path << std::endl;   //TEST
 
     std::vector<std::string> os_path_list = splitString(os_path, ':');
 
@@ -51,11 +51,6 @@ int main (int argc, char **argv)
                 char** new_argv = vectorToArray(tokens);    //converts vector to a char**
 
                 std::string command = getFullPath(tokens[0],os_path_list);
-
-                if(command.compare("") == 0)
-                {
-                    printf("command not found\n");
-                }
 
                 execv(command.data(),new_argv);
                 exit(0);
@@ -119,11 +114,11 @@ std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path
 {
     std::string result = "";
     bool x = false;
-    bool flag = true;
+    bool exists = false;
 
-    for(int i = 0;i < os_path_list.size() && flag;i++)
+    for(int i = 0;i < os_path_list.size();i++)
     {
-        bool exists = fileExists((os_path_list[i] + "/" + cmd),&x);
+        exists = fileExists((os_path_list[i] + "/" + cmd),&x);
 
         if(exists && x)
         {
@@ -132,11 +127,19 @@ std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path
         }
     }
 
-    //TODO relative path checking should probably go here
-
-    if(result.compare("") == 0)
+    if(result.compare("") == 0) //file not in path
     {
-        printf("<%s>: Error running command\n",cmd.data());
+        exists = fileExists(cmd,&x);    //testing relative/full path
+
+        if(exists && x) //full or relative path hit
+        {
+            std::cout << "command exists on relative or full path: " << cmd << std::endl;
+
+            result = cmd;
+        }
+
+        else    //no file located
+            printf("<%s>: Error running command\n",cmd.data());
     }
 
     return result;
