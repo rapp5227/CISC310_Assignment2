@@ -18,8 +18,6 @@ int main (int argc, char **argv)
     std::string input;
     char* os_path = getenv("PATH");
 
-    // std::cout << os_path << std::endl;   //TEST
-
     std::vector<std::string> os_path_list = splitString(os_path, ':');
 
     std::cout << "Welcome to OSShell! Please enter your commands ('exit' to quit)." << std::endl;
@@ -60,12 +58,6 @@ int main (int argc, char **argv)
             {
                 int status = 0;
                 waitpid(0,&status,0);   //waits for child to finish, places exit code into status
-
-                if(status != 0)
-                {
-                    printf("child exploded");    //prints error message and exits
-                    // exit(-1);   //TODO do we want to exit here
-                }
             }  
         }//else if(input.compare("") != 0)
     }//while(1)
@@ -107,7 +99,7 @@ std::vector<std::string> splitString(std::string text, char d)
     result.push_back(text.substr(start,size));
 
     return result;
-}
+}//splitString
 
 // Returns a string for the full path of a command if it is found in PATH, otherwise simply return ""
 std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path_list)
@@ -143,7 +135,7 @@ std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path
     }
 
     return result;
-}
+}//getFullPath
 
 // Returns whether a file exists or not; should also set *executable to true/false 
 // depending on if the user has permission to execute the file
@@ -168,19 +160,7 @@ bool fileExists(std::string fpath, bool *executable)
     *executable = x && !isFolder;
 
     return true;
-}
-
-// bool fileExists(std::string full_path, bool *executable)
-// {
-//     std::ifstream file(full_path.data());
-
-//     bool result = file.good();
-
-//     *executable = !access(full_path.data(),X_OK) && result;
-//         //if the file doesn't exist, executable is always false
-
-//     return result;
-// }
+}//fileExists
 
 // converts std::string vector to a char**
 char** vectorToArray(std::vector<std::string> input)
@@ -193,4 +173,4 @@ char** vectorToArray(std::vector<std::string> input)
     }
 
     return result;
-}
+}//vectorToArray
