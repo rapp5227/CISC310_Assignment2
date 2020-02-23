@@ -5,15 +5,19 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <fstream>
+#include <sys/stat.h>
 
 std::vector<std::string> splitString(std::string text, char d);
 std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path_list);
 bool fileExists(std::string full_path, bool *executable);
+char** vectorToArray(std::vector<std::string> input);
 
 int main (int argc, char **argv)
 {
     std::string input;
     char* os_path = getenv("PATH");
+
     std::vector<std::string> os_path_list = splitString(os_path, ':');
 
     std::cout << "Welcome to OSShell! Please enter your commands ('exit' to quit)." << std::endl;
@@ -24,9 +28,9 @@ int main (int argc, char **argv)
 
         getline(std::cin,input);
         
-        if(input.compare("exit") == 0)
+        if(input.compare("exit") == 0)  //exits the shell
         {
-            break;  //exits the shell
+            break;
         }
         
         else if(input.compare("history") == 0)
@@ -38,25 +42,15 @@ int main (int argc, char **argv)
         {
             pid_t pid = fork(); //forks the process
 
-            if(pid == 0)    //if process is child
+            if(pid == 0)    //if current process is child
             {
-                // printf("child spawn\n");
-
                 std::vector<std::string> tokens = splitString(input, ' ');  //splits input by spaces to approximate argv[]
 
-                char** new_argv = (char**) malloc(tokens.size() * sizeof(char*));
+                char** new_argv = vectorToArray(tokens);    //converts vector to a char**
 
-                for(int i = 0;i < tokens.size();i++)
-                {
-                    new_argv[i] = (char*) tokens[i].data();
-                }
-                
-                // for(int i = 0;i < tokens.size();i++)
-                // {
-                //     printf("Element %d: %s\n",i,new_argv[i]);
-                // }
+                std::string command = getFullPath(tokens[0],os_path_list);
 
-                execv(new_argv[0],new_argv);
+                execv(command.data(),new_argv);
                 exit(0);
             }
 
@@ -64,18 +58,9 @@ int main (int argc, char **argv)
             {
                 int status = 0;
                 waitpid(0,&status,0);   //waits for child to finish, places exit code into status
-
-                // printf("parent continues\n");
-
-                if(status != 0)
-                {
-                    perror("Error occurred during child spawn");    //prints error message and exits
-                    exit(-1);
-                }
             }  
-        }
-        
-    }
+        }//else if(input.compare("") != 0)
+    }//while(1)
 
 
     // Repeat:
@@ -114,18 +99,78 @@ std::vector<std::string> splitString(std::string text, char d)
     result.push_back(text.substr(start,size));
 
     return result;
-}
+}//splitString
 
 // Returns a string for the full path of a command if it is found in PATH, otherwise simply return ""
 std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path_list)
 {
-    return "";
-}
+    std::string result = "";
+    bool x = false;
+    bool exists = false;
+
+    for(int i = 0;i < os_path_list.size();i++)
+    {
+        exists = fileExists((os_path_list[i] + "/" + cmd),&x);
+
+        if(exists && x)
+        {
+            result = os_path_list[i] + "/" + cmd;
+            break;
+        }
+    }
+
+    if(result.compare("") == 0) //file not in path
+    {
+        exists = fileExists(cmd,&x);    //testing relative/full path
+
+        if(exists && x) //full or relative path hit
+        {
+            std::cout << "command exists on relative or full path: " << cmd << std::endl;
+
+            result = cmd;
+        }
+
+        else    //no file located
+            printf("<%s>: Error running command\n",cmd.data());
+    }
+
+    return result;
+}//getFullPath
 
 // Returns whether a file exists or not; should also set *executable to true/false 
 // depending on if the user has permission to execute the file
-bool fileExists(std::string full_path, bool *executable)
+bool fileExists(std::string fpath, bool *executable)
 {
-    *executable = false;
-    return false;
-}
+    struct stat st;
+
+    if(stat(fpath.data(),&st) != 0)
+    {
+        *executable = false;
+        return false;
+    }
+
+    bool isFolder = st.st_mode & S_IFDIR;
+    
+    bool x_a = S_IXOTH;                                 //can anyone execute?
+    bool x_g = S_IXGRP && (geteuid() == st.st_gid);     //is the user in a group that can execute?
+    bool x_o = S_IXUSR && (geteuid() == st.st_uid);     //does the user own this file, and can they execute it?
+
+    bool x = x_a || x_g || x_o;
+
+    *executable = x && !isFolder;
+
+    return true;
+}//fileExists
+
+// converts std::string vector to a char**
+char** vectorToArray(std::vector<std::string> input)
+{
+    char** result = (char**) malloc(input.size() * sizeof(char*));
+
+    for(int i = 0;i < input.size();i++)
+    {
+        result[i] = (char*) input[i].data();
+    }
+
+    return result;
+}//vectorToArray
