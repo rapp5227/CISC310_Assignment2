@@ -7,6 +7,7 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <sys/stat.h>
  
 std::vector<std::string> splitString(std::string text, char d);
 std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path_list);
@@ -50,11 +51,16 @@ int main (int argc, char **argv)
 		std::cout << "osshell> ";
 		std::getline(std::cin, input);
 		input_list = splitString(input, ' ');
+
+		if( input.compare("") == 0){
+			continue;
+		}
 		
 
 // exit command
 		if( input_list.front().compare("exit") == 0 ){
-			
+					
+			hist.push_back( input );
 			//write back to history file
 
 			//clear file contents -- https://stackoverflow.com/questions/17032970/clear-data-inside-text-file-in-c
@@ -175,6 +181,8 @@ int main (int argc, char **argv)
 		//else if( ){};
 
 		else{
+
+
 
 
 			std::string path = getFullPath( input_list.front(), os_path_list );
@@ -311,7 +319,7 @@ std::vector<std::string> splitString(std::string text, char d)
     return result;
 }
 
-
+/*
 
 // Returns a string for the full path of a command if it is found in PATH, otherwise simply return ""
 std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path_list)
@@ -334,6 +342,43 @@ std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path
     return result;
 }
 
+*/
+
+std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path_list)
+{
+    std::string result = "";
+    bool x = false;
+    bool exists = false;
+
+    for(int i = 0;i < os_path_list.size();i++)
+    {
+        exists = fileExists((os_path_list[i] + "/" + cmd),&x);
+
+        if(exists && x)
+        {
+            result = os_path_list[i] + "/" + cmd;
+            break;
+        }
+    }
+
+    if(result.compare("") == 0) //file not in path
+    {
+        exists = fileExists(cmd,&x);    //testing relative/full path
+
+        if(exists && x) //full or relative path hit
+        {
+           // std::cout << "command exists on relative or full path: " << cmd << std::endl;
+
+            result = cmd;
+        }
+
+        else    //no file located
+            printf("<%s>: Error running command\n",cmd.data());
+    }
+
+    return result;
+}
+/*
 // Returns whether a file exists or not; should also set *executable to true/false 
 // depending on if the user has permission to execute the file
 bool fileExists(std::string full_path, bool *executable)
@@ -354,7 +399,29 @@ bool fileExists(std::string full_path, bool *executable)
 
 	else return false;
 }
+*/
+bool fileExists(std::string fpath, bool *executable)
+{
+    struct stat st;
 
+    if(stat(fpath.data(),&st) != 0)
+    {
+        *executable = false;
+        return false;
+    }
+
+    bool isFolder = st.st_mode & S_IFDIR;
+    
+    bool x_a = S_IXOTH;                                 //can anyone execute?
+    bool x_g = S_IXGRP && (geteuid() == st.st_gid);     //is the user in a group that can execute?
+    bool x_o = S_IXUSR && (geteuid() == st.st_uid);     //does the user own this file, and can they execute it?
+
+    bool x = x_a || x_g || x_o;
+
+    *executable = x && !isFolder;
+
+    return true;
+}//fileExists
 
 
 
