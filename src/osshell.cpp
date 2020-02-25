@@ -2,75 +2,293 @@
 #include <cstdlib>
 #include <string>
 #include <vector>
+#include <algorithm> // for std::min
+#include <fstream>	// for file reading
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <fstream>
 #include <sys/stat.h>
-
+ 
 std::vector<std::string> splitString(std::string text, char d);
 std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path_list);
 bool fileExists(std::string full_path, bool *executable);
-char** vectorToArray(std::vector<std::string> input);
+std::string nums = "0123456789";
 
 int main (int argc, char **argv)
 {
-    std::string input;
-    char* os_path = getenv("PATH");
+	//read history file into hist array.
+	std::ifstream hist_file("./history.txt");
+	//copy of hist while program is running
+	std::vector<std::string> hist;
 
+    std::string input;
+	std::vector<std::string> input_list;
+    char* os_path = getenv("PATH");
     std::vector<std::string> os_path_list = splitString(os_path, ':');
+
+// initialize hist vector
+	if( hist_file.fail() ){
+
+		hist_file.close();
+		std::ofstream new_hist("./history.txt");
+		new_hist.close();
+	}
+
+	if( !hist_file.is_open() ) hist_file.open("./history.txt");
+	std::string temp;
+
+	while(std::getline( hist_file, temp)){
+		//std::cout << temp;
+		hist.push_back(temp);
+	}
+	hist_file.close();
+
 
     std::cout << "Welcome to OSShell! Please enter your commands ('exit' to quit)." << std::endl;
 
-    while(1)
-    {
-        printf("osshell> ");
+    while( 1 ){
 
-        getline(std::cin,input);
-        
-        if(input.compare("exit") == 0)  //exits the shell
-        {
-            break;
-        }
-        
-        else if(input.compare("history") == 0)
-        {
-            //TODO execute history command
-        }
+		std::cout << "osshell> ";
+		std::getline(std::cin, input);
+		input_list = splitString(input, ' ');
 
-        else if(input.compare("") != 0)   //Structure adapted from https://stackoverflow.com/a/19461845
-        {
-            pid_t pid = fork(); //forks the process
+		if( input.compare("") == 0){
+			continue;
+		}
+		
 
-            if(pid == 0)    //if current process is child
-            {
-                std::vector<std::string> tokens = splitString(input, ' ');  //splits input by spaces to approximate argv[]
+// exit command
+		if( input_list.front().compare("exit") == 0 ){
+					
+			hist.push_back( input );
+			//write back to history file
 
-                char** new_argv = vectorToArray(tokens);    //converts vector to a char**
+			//clear file contents -- https://stackoverflow.com/questions/17032970/clear-data-inside-text-file-in-c
+			std::ofstream out;
+			out.open("./history.txt", std::ofstream::out | std::ofstream::trunc);
+			out.close();
 
-                std::string command = getFullPath(tokens[0],os_path_list);
+			out.open("./history.txt");
 
-                execv(command.data(),new_argv);
-                exit(0);
-            }
+			for(int i=0; i< hist.size(); i++){
+				
+				out << hist[i] << "\n";
+				
+			}
 
-            else if (pid > 0)   //process is parent
-            {
-                int status = 0;
-                waitpid(0,&status,0);   //waits for child to finish, places exit code into status
-            }  
-        }//else if(input.compare("") != 0)
-    }//while(1)
+			return 0;
+		}
+// history command
+		else if( input_list.front().compare("history") == 0){
+
+			//just called "history"
+			if(input_list.size() == 1){
+				
+				for( int i=0; i < hist.size(); i++){
+
+					std::cout << "  " << i << ": " << hist[i] << "\n";
+				}
+
+			}
+			
+			//called "history XXXX"
+			else if( input_list.size() == 2 ){
 
 
-    // Repeat:
-    //~  Print prompt for user input: "osshell> " (no newline)
-    //~  Get user input for next command
-    //~  If command is `exit` exit loop / quit program
-    //  If command is `history` print previous N commands
-    //  For all other commands, check if an executable by that name is in one of the PATH directories
-    //   If yes, execute it
-    //   If no, print error statement: "<command_name>: Error running command" (do include newline)
+				// called "history clear"
+				if( input_list[1] == "clear" ){
+				
+					std::vector<std::string> empty_hist;
+					hist = empty_hist;		
+
+				}
+
+				// called "history <int>" or "history <garbage>"
+				else{
+
+					for(int i=0; i< input_list[i].length(); i++){
+						if( nums.find(input_list[1][i]) < 0){
+
+							std::cout << "Error: history expects an integer > 0 (or 'clear')\n";
+							continue;
+						}
+					}
+
+					int length = std::stoi(input_list[1]);
+					length = std::min(length, (int)hist.size());
+		
+					if( length < 1 && (int)hist.size() != 0){
+
+						std::cout << "Error: history expects an integer > 0 (or 'clear')\n";
+
+					}
+
+					else{
+					
+						for( int i=(int)hist.size() - length; i < hist.size(); i++){
+
+							std::cout << "  " << i << ": " << hist[i] << "\n";
+						}
+					}
+				}
+			
+			}
+
+		}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		//Check if Real Command input in /bin or /usr/bin etc. 
+		//else if( ){};
+
+		else{
+
+
+
+
+			std::string path = getFullPath( input_list.front(), os_path_list );
+
+			char *argv[input_list.size() + 1];
+			int status;
+
+			for(int i=0; i < input_list.size(); i++){
+
+				argv[i] = (char*)input_list[i].c_str();
+			}
+
+			argv[input_list.size()] = NULL;
+
+	/*
+			std::cout << os_path_list.size() << std::endl;
+			for(int i=0; i < os_path_list.size(); i++)  std::cout << "PATH list: " << os_path_list[i] << std::endl;
+			std::cout << "path was: " << path << std::endl;
+		 	std::cout << "argv: {";
+			for( int i=0; i<input_list.size(); i++)		std::cout << argv[i] << ", ";
+			std::cout << "}" << std::endl;
+
+*/
+
+			pid_t pid = fork();
+			//std::cout << "pid was: " << pid << std::endl;
+
+			if(pid == 0)
+			{
+				//std::cout << "in IF" << std::endl;
+				execv(path.c_str(),argv);
+			}
+
+			else
+			{
+				wait(&status);
+			}
+
+		/*	if(WIFEXITED(status) != 0){
+
+				std::cout << "Exited with status: " << status << std::endl;
+			}	
+		*/		
+
+		}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		hist.push_back( input );
+
+		if(hist.back().compare("history clear") == 0){
+			hist.erase(hist.end());
+		}
+
+		if( hist.size() > 128 ){
+			hist.erase(hist.begin());
+		}
+
+	}
+
+		
+
+		//  If command is `history` print previous N commands
+		//  For all other commands, check if an executable by that name is in one of the PATH directories
+		//   If yes, execute it
+		//   If no, print error statement: "<command_name>: Error running command" (do include newline)
 
     return 0;
 }
@@ -78,30 +296,54 @@ int main (int argc, char **argv)
 // Returns vector of strings created by splitting `text` on every occurance of `d`
 std::vector<std::string> splitString(std::string text, char d)
 {
+	//result vector
     std::vector<std::string> result;
+	// char index for next ' '
+	int space = 0; 
 
-    int start = 0;
-    int size = 0;
+    while(text.length() != 0){
+        space = text.find(d);
 
-    for(int i = 0;i < text.length();i++)
-    {
-        ++size;
+        if(space < 0){
 
-        if(text[i] == d)
-        {
-            result.push_back(text.substr(start,size-1));
+			result.push_back(text);
+            text = "";
+        }
 
-            start = i + 1;
-            size = 0;
+		else{
+
+			result.push_back(text.substr(0,space));
+            text = text.substr(space + 1);   
         }
     }
-    
-    result.push_back(text.substr(start,size));
-
     return result;
-}//splitString
+}
+
+/*
 
 // Returns a string for the full path of a command if it is found in PATH, otherwise simply return ""
+std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path_list)
+{
+	std::string result = "";
+	bool can_run = true;
+
+	for(int i=0; i< os_path_list.size(); i++){
+
+		//std::cout << os_path_list[i] + "/" + cmd << std::endl;
+
+		if( fileExists( os_path_list[i] + "/" + cmd, &can_run )){
+
+			if(can_run){
+				result = os_path_list[i] + "/" + cmd;
+			}
+		}
+	}
+
+    return result;
+}
+
+*/
+
 std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path_list)
 {
     std::string result = "";
@@ -125,7 +367,7 @@ std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path
 
         if(exists && x) //full or relative path hit
         {
-            std::cout << "command exists on relative or full path: " << cmd << std::endl;
+           // std::cout << "command exists on relative or full path: " << cmd << std::endl;
 
             result = cmd;
         }
@@ -135,10 +377,29 @@ std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path
     }
 
     return result;
-}//getFullPath
-
+}
+/*
 // Returns whether a file exists or not; should also set *executable to true/false 
 // depending on if the user has permission to execute the file
+bool fileExists(std::string full_path, bool *executable)
+{
+	*executable = false;
+
+	// if File exists
+	if( access( full_path.c_str(), F_OK) == 0){
+
+		// if user has execute perms
+		if( access( full_path.c_str(), X_OK) == 0){
+			*executable = true;
+		}
+		
+		return true;
+
+	}
+
+	else return false;
+}
+*/
 bool fileExists(std::string fpath, bool *executable)
 {
     struct stat st;
@@ -162,15 +423,10 @@ bool fileExists(std::string fpath, bool *executable)
     return true;
 }//fileExists
 
-// converts std::string vector to a char**
-char** vectorToArray(std::vector<std::string> input)
-{
-    char** result = (char**) malloc(input.size() * sizeof(char*));
 
-    for(int i = 0;i < input.size();i++)
-    {
-        result[i] = (char*) input[i].data();
-    }
 
-    return result;
-}//vectorToArray
+
+
+
+
+
