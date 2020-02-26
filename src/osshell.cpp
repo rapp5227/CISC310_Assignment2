@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstdlib>
+#include <cstring>
 #include <string>
 #include <vector>
 #include <algorithm> // for std::min
@@ -106,18 +107,28 @@ int main (int argc, char **argv)
 				// called "history <int>" or "history <garbage>"
 				else{
 
-					for(int i=0; i< input_list[i].length(); i++){
-						if( nums.find(input_list[1][i]) < 0){
+					int length;
 
-							std::cout << "Error: history expects an integer > 0 (or 'clear')\n";
-							continue;
-						}
-					}
+                    if(sscanf(input_list[1].data(),"%d",&length) != 1)
+                    {
+                        std::cout << "Error: history expects an integer > 0 (or 'clear')\n";
+                        continue;
+                    }
 
-					int length = std::stoi(input_list[1]);
+                    std::string lengthTest = std::to_string(length);
+
+                    if(lengthTest.size() != input_list[1].size())
+                    {
+                        std::cout << "test: " << lengthTest.size() << ", actual: " << input_list[1].size() << std::endl;
+
+                        std::cout << "Error: history expects an integer > 0 (or 'clear')\n";
+                        continue;
+                    }
+
 					length = std::min(length, (int)hist.size());
 		
-					if( length < 1 && (int)hist.size() != 0){
+					if( length < 1 && (int)hist.size() != 0)
+                    {
 
 						std::cout << "Error: history expects an integer > 0 (or 'clear')\n";
 
