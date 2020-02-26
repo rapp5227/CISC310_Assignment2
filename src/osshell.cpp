@@ -384,7 +384,7 @@ std::string getFullPath(std::string cmd, const std::vector<std::string>& os_path
         }
 
         else    //no file located
-            printf("<%s>: Error running command\n",cmd.data());
+            printf("%s: Error running command\n",cmd.data());
     }
 
     return result;
