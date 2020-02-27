@@ -51,6 +51,17 @@ int main (int argc, char **argv)
 
 		std::cout << "osshell> ";
 		std::getline(std::cin, input);
+
+        //scrub quotation marks
+
+        input_list = splitString(input,'"');
+        input = "";
+
+        for(int i = 0;i < input_list.size();i++)
+        {
+            input += input_list[i];
+        }
+        
 		input_list = splitString(input, ' ');
 
 		if( input.compare("") == 0){
@@ -119,7 +130,7 @@ int main (int argc, char **argv)
 
                     if(lengthTest.size() != input_list[1].size())
                     {
-                        std::cout << "test: " << lengthTest.size() << ", actual: " << input_list[1].size() << std::endl;
+                        // std::cout << "test: " << lengthTest.size() << ", actual: " << input_list[1].size() << std::endl;
 
                         std::cout << "Error: history expects an integer > 0 (or 'clear')\n";
                         continue;
@@ -198,7 +209,10 @@ int main (int argc, char **argv)
 
 			std::string path = getFullPath( input_list.front(), os_path_list );
 
-			char *argv[input_list.size() + 1];
+            if(path.compare("") == 0)
+                continue;
+
+			char *argv[input_list.size()];
 			int status;
 
 			for(int i=0; i < input_list.size(); i++){
@@ -223,7 +237,6 @@ int main (int argc, char **argv)
 
 			if(pid == 0)
 			{
-				//std::cout << "in IF" << std::endl;
 				execv(path.c_str(),argv);
 			}
 
