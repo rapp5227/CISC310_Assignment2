@@ -108,7 +108,7 @@ int main (int argc, char **argv)
 
 
 				// called "history clear"
-				if( input_list[1] == "clear" ){
+				if( input_list[1].compare("clear") == 0 ){
 				
 					std::vector<std::string> empty_hist;
 					hist = empty_hist;		
@@ -120,11 +120,14 @@ int main (int argc, char **argv)
 
 					int length;
 
-                    if(sscanf(input_list[1].data(),"%d",&length) != 1)
-                    {
-                        std::cout << "Error: history expects an integer > 0 (or 'clear')\n";
-                        continue;
-                    }
+					//for( int i=0; i < input_list[1].length(); i++){
+		                if( sscanf(input_list[1].data(),"%d",&length) != 1)
+		                {
+		                    std::cout << "Error: history expects an integer > 0 (or 'clear')\n";
+							hist.push_back( input );
+		                    continue;
+		                }
+					//}
 
                     std::string lengthTest = std::to_string(length);
 
@@ -132,6 +135,7 @@ int main (int argc, char **argv)
                     {
 
                         std::cout << "Error: history expects an integer > 0 (or 'clear')\n";
+						hist.push_back( input );
                         continue;
                     }
 
@@ -146,6 +150,8 @@ int main (int argc, char **argv)
 
 					else{
 					
+						//std::cout << "Length: " << length << " Hist Size: " << (int)hist.size() << std::endl;
+
 						for( int i=(int)hist.size() - length; i < hist.size(); i++){
 
 							std::cout << "  " << i+1 << ": " << hist[i] << "\n";
@@ -163,8 +169,10 @@ int main (int argc, char **argv)
 
 			std::string path = getFullPath( input_list.front(), os_path_list );
 
-            if(path.compare("") == 0)
+            if(path.compare("") == 0){
+				hist.push_back( input );
                 continue;
+			}
 
 			char *argv[input_list.size()];
 			int status;
